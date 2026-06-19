@@ -25,7 +25,7 @@ module score_manager(
  
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            score <= 8'd0;
+            score <= 8'd10;
             game_over_reg <= 1'b0;
         end else if (!game_over_reg) begin
             if (miss_pulse) begin

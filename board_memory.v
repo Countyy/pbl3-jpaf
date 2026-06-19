@@ -10,10 +10,10 @@ module board_memory(
 );
     // 64 cells de 4 bits: [3:1]=ship_type, [0]=hit
     reg [3:0] ram [63:0];
-    integer i;
 
     always @(posedge clk or posedge rst) begin
-        if (rst) begin
+        if (rst) begin : reset_block
+            integer i;
             for (i = 0; i < 64; i = i + 1)
                 ram[i] <= 4'b0000;
         end else begin

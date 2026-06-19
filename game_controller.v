@@ -148,8 +148,10 @@ module game_controller(
         end else begin
             case (state)
                 G_PLACEMENT: if (placement_done) state <= G_BATTLE;
-                G_BATTLE:    if (score_game_over) state <= G_GAME_OVER;
-                             else if (victory) state <= G_VICTORY;
+                G_BATTLE: begin
+                    if (score_game_over) state <= G_GAME_OVER;
+                    else if (victory) state <= G_VICTORY;
+                end
                 G_GAME_OVER: ; // aguarda rst
                 G_VICTORY:   ; // aguarda rst
                 default:     state <= G_PLACEMENT;

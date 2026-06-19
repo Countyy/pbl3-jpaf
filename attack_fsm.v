@@ -81,6 +81,7 @@ module attack_fsm(
             vga_write_en   <= 1'b0;
             hit_pulse      <= 1'b0;
             miss_pulse     <= 1'b0;
+            battle_done    <= 1'b0;
 
             case (state)
                 // ── IDLE: aguarda o jogador confirmar um tiro ────────────
