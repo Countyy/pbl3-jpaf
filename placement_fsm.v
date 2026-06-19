@@ -36,6 +36,7 @@ module placement_fsm(
     reg [5:0] addr_counter;
     reg [2:0] loop_counter;
     reg overlap_detected;
+    reg pending_confirm;
 
     always @(*) begin
         case (ship_idx)
@@ -79,7 +80,7 @@ module placement_fsm(
         end
     endfunction
 
-    always @(posedge clk or posedge rst) begin
+    always @(posedge clk) begin
         if (rst) begin
             state          <= S_RESET;
             ship_idx       <= 2'd0;
@@ -98,9 +99,20 @@ module placement_fsm(
             addr_counter   <= 6'd0;
             loop_counter   <= 3'd0;
             overlap_detected <= 1'b0;
+            pending_confirm <= 1'b0;
         end else begin
             board_write_en <= 1'b0;
             vga_write_en   <= 1'b0;
+
+            if (btn_confirm) begin
+                pending_confirm <= 1'b1;
+            end else if (state == S_SELECT_START && pending_confirm) begin
+                pending_confirm <= 1'b0;
+            end else if (state == S_SELECT_END && pending_confirm) begin
+                pending_confirm <= 1'b0;
+            end else if (state == S_RESET) begin
+                pending_confirm <= 1'b0;
+            end
 
             case (state)
                 S_RESET: begin
@@ -111,7 +123,7 @@ module placement_fsm(
                 end
 
                 S_SELECT_START: begin
-                    if (btn_confirm) begin
+                    if (pending_confirm) begin
                         start_row      <= sw_row;
                         start_col      <= sw_col;
                         cursor_row_old <= sw_row;
@@ -124,7 +136,7 @@ module placement_fsm(
                 end
 
                 S_SELECT_END: begin
-                    if (btn_confirm) begin
+                    if (pending_confirm) begin
                         state <= S_VALIDATE_1;
                     end else if (sw_row != cursor_row_old || sw_col != cursor_col_old) begin
                         cursor_row_old <= sw_row;

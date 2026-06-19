@@ -57,7 +57,7 @@ module attack_fsm(
     reg       had_prev_miss;
     reg [5:0] prev_miss_addr;
 
-    always @(posedge clk or posedge rst) begin
+    always @(posedge clk) begin
         if (rst) begin
             state            <= S_IDLE;
             board_write_en   <= 1'b0;

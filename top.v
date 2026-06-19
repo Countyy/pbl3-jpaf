@@ -27,15 +27,29 @@ module top(
     wire clk_25;
     clock_divider clk_div(
         .clk_50(clk),
-        .rst(global_rst),
+        .rst(1'b0),
         .clk_25(clk_25)
     );
+
+    // Sincronizador de reset de 2 estágios (dois flip-flops em série)
+    reg rst_sync1;
+    reg rst_sync2;
+    always @(posedge clk_25 or posedge global_rst) begin
+        if (global_rst) begin
+            rst_sync1 <= 1'b1;
+            rst_sync2 <= 1'b1;
+        end else begin
+            rst_sync1 <= 1'b0;
+            rst_sync2 <= rst_sync1;
+        end
+    end
+    wire safe_rst = rst_sync2;
 
     // 2. Debouncer for confirm button (en) - usa clk_25 (mesmo dominio do game_controller)
     wire btn_confirm;
     debouncer db_confirm(
         .clk(clk_25),
-        .rst(global_rst),
+        .rst(safe_rst),
         .key_in(en),
         .key_pulse(btn_confirm)
     );
@@ -52,7 +66,7 @@ module top(
     // 4. Game Controller (Brain of the system)
     game_controller controller(
         .clk(clk_25),
-        .rst(global_rst),
+        .rst(safe_rst),
         .btn_confirm(btn_confirm),
         .sw_row(sw[5:3]),
         .sw_col(sw[2:0]),
@@ -67,7 +81,7 @@ module top(
     // 5. VGA Interface (intact)
     VGA_interface vga_inst(
         .clk_25mhz(clk_25),
-        .reset(global_rst),
+        .reset(safe_rst),
         .write_enable(vga_write_en),
         .data(vga_color),
         .address(vga_addr),
