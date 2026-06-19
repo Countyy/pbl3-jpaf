@@ -37,6 +37,7 @@ module placement_fsm(
     reg [2:0] loop_counter;
     reg overlap_detected;
     reg pending_confirm;
+    reg preview_dirty; // força redesenho do preview ao entrar em S_SELECT_END
 
     always @(*) begin
         case (ship_idx)
@@ -100,6 +101,7 @@ module placement_fsm(
             loop_counter   <= 3'd0;
             overlap_detected <= 1'b0;
             pending_confirm <= 1'b0;
+            preview_dirty   <= 1'b0;
         end else begin
             board_write_en <= 1'b0;
             vga_write_en   <= 1'b0;
@@ -126,8 +128,11 @@ module placement_fsm(
                     if (pending_confirm) begin
                         start_row      <= sw_row;
                         start_col      <= sw_col;
+                        // Grava cursor_old = sw atual mas marca preview_dirty
+                        // para forçar redesenho imediato em S_SELECT_END
                         cursor_row_old <= sw_row;
                         cursor_col_old <= sw_col;
+                        preview_dirty  <= 1'b1;
                         vga_write_en   <= 1'b1;
                         vga_addr       <= {sw_row, sw_col};
                         vga_color      <= 2'b11; // branco
@@ -137,10 +142,15 @@ module placement_fsm(
 
                 S_SELECT_END: begin
                     if (pending_confirm) begin
+                        preview_dirty <= 1'b0;
                         state <= S_VALIDATE_1;
-                    end else if (sw_row != cursor_row_old || sw_col != cursor_col_old) begin
+                    end else if (preview_dirty || sw_row != cursor_row_old || sw_col != cursor_col_old) begin
+                        // preview_dirty: primeira vez que entramos aqui (chaves podem estar
+                        // na mesma posição do confirm de início), força redesenho.
+                        // Também redesenha se o usuário moveu as chaves.
                         cursor_row_old <= sw_row;
                         cursor_col_old <= sw_col;
+                        preview_dirty  <= 1'b0;
                         addr_counter   <= 6'd0;
                         state          <= S_PREVIEW_CLEAR_1;
                     end
