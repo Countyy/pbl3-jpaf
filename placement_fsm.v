@@ -193,6 +193,7 @@ module placement_fsm(
 
                 S_VALIDATE_1: begin
                     if (!valid_geom) begin
+                        preview_dirty <= 1'b1;
                         state <= S_SELECT_END;
                     end else begin
                         loop_counter     <= 3'd0;
@@ -207,9 +208,10 @@ module placement_fsm(
                         overlap_detected <= 1'b1;
 
                     if (loop_counter == ship_size - 1'b1) begin
-                        if (overlap_detected || (board_ship_type_out != 3'd0))
+                        if (overlap_detected || (board_ship_type_out != 3'd0)) begin
+                            preview_dirty <= 1'b1;
                             state <= S_SELECT_END;
-                        else begin
+                        end else begin
                             loop_counter <= 3'd0;
                             state        <= S_WRITE_SHIP;
                         end
