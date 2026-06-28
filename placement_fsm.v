@@ -150,11 +150,17 @@ module placement_fsm(
             // Sinais de 1 ciclo voltam ao padrao a cada ciclo
             board_write_en <= 1'b0;
             vga_write_en   <= 1'b0;
+            board_hit      <= 1'b0; // default explicito (placement nunca grava hit)
 
-            // Captura o pulso de confirm a qualquer momento; consumido nos
-            // estados S_SELECT_START / S_SELECT_END (o clear no case tem
-            // prioridade por ser a ultima atribuicao nao-bloqueante).
-            if (btn_confirm)
+            // Captura o pulso de confirm APENAS nas fases de selecao do navio:
+            // S_SELECT_START, S_SELECT_END e os estados de preview
+            // (S_PREVIEW_CLEAR_1/2, S_PREVIEW_DRAW), onde o usuario pode
+            // apertar enquanto o tabuleiro esta sendo redesenhado.
+            // Antes o latch ocorria em QUALQUER estado: um pulso durante
+            // S_CLEAR_BLUE (inicio) ou durante o pipeline validate/write/next
+            // ficava pendente e era consumido sozinho no proximo
+            // S_SELECT_START, criando um ponto inicial fantasma.
+            if (btn_confirm && (state >= S_SELECT_START) && (state <= S_PREVIEW_DRAW))
                 confirm_latched <= 1'b1;
 
             case (state)
@@ -173,8 +179,9 @@ module placement_fsm(
                     vga_addr     <= addr_counter;
                     vga_color    <= COLOR_BLUE;
                     if (addr_counter == 6'd63) begin
-                        addr_counter <= 6'd0;
-                        state        <= S_SELECT_START;
+                        addr_counter    <= 6'd0;
+                        confirm_latched <= 1'b0; // descarta pulso espurio durante o clear
+                        state           <= S_SELECT_START;
                     end else begin
                         addr_counter <= addr_counter + 1'b1;
                     end
@@ -310,6 +317,7 @@ module placement_fsm(
                 end
 
                 S_NEXT_SHIP: begin
+                    confirm_latched <= 1'b0; // limpa pulso residual antes do proximo navio
                     if (ship_idx == 2'd3) begin
                         addr_counter <= 6'd0;
                         state        <= S_HIDE_BLUE;
